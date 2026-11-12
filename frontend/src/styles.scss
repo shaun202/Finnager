@@ -1,0 +1,182 @@
+@use './app/app';
+
+:root {
+  color-scheme: light;
+  --text: #050805;
+  --app-bg: #f3f9f4;
+  --primary: #0d6a49;
+  --secondary: #95dea8;
+  --accent: #60e081;
+  --surface: #ffffff;
+  --surface-soft: #e8f2e9;
+  --border: #dce8de;
+  --muted: #5c6e62;
+  --surface-text: #050805;
+  --surface-muted: #5c6e62;
+  --surface-border: #dce8de;
+  --chrome: #ffffff;
+  --chrome-text: #050805;
+  --worth-bg: #0d6a49;
+  --worth-text: #f6f9f6;
+  --positive: #0d6a49;
+  --surface-positive: #0d6a49;
+  --negative: #a4503d;
+  --on-primary: #f6f9f6;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--app-bg);
+  color: var(--text);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --text: #f6f9f6;
+  --app-bg: #070e08;
+  --primary: #97f2d2;
+  --secondary: #206934;
+  --accent: #1f9e3f;
+  --surface: #e7e9e7;
+  --surface-soft: #dce1dc;
+  --border: #263a2c;
+  --muted: #a4b7aa;
+  --surface-text: #050805;
+  --surface-muted: #626a64;
+  --surface-border: #cbd2cc;
+  --chrome: #206934;
+  --chrome-text: #f6f9f6;
+  --worth-bg: #206934;
+  --worth-text: #f6f9f6;
+  --positive: #97f2d2;
+  --surface-positive: #206934;
+  --negative: #f2a28f;
+  --on-primary: #070e08;
+}
+
+/* Month navigation toolbar buttons */
+.month-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .month-arrow,
+  .today-button {
+    background-color: var(--primary);
+    color: var(--on-primary);
+    border: none;
+    border-radius: 9999px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+
+    /* Keep pill style consistent even when disabled */
+    &:disabled {
+      background-color: var(--primary);
+      color: var(--on-primary);
+      opacity: 0.5; /* Or set to 1 if you don't want any visual dimming */
+      cursor: default;
+    }
+  }
+
+  .month-arrow {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .today-button {
+    padding: 0.4rem 1rem;
+    font-size: 0.875rem;
+  }
+}
+
+html[data-theme="dark"] app-root .panel,
+html[data-theme="dark"] app-root .metric-card,
+html[data-theme="dark"] app-root .dialog {
+  border-color: var(--surface-border);
+  background-color: var(--surface);
+  color: var(--surface-text);
+}
+html[data-theme="dark"] {
+  .page-heading {
+    .eyebrow {
+      color: #f6f9f6;
+    }
+  }
+}
+
+html[data-theme="dark"] {
+  .holdings-intro {
+    h2 {
+      color: var(--text);
+    }
+  }
+}
+
+html[data-theme="dark"] {
+  .sidebar {
+    border-right: 1px solid #97feb1; /* Adjust this hex value to make the line lighter or darker */
+  }
+}
+
+html[data-theme="dark"] {
+  .topbar {
+    border-bottom: 1px solid #97feb1;
+  }
+}
+
+.month-toolbar {
+  color: var(--text);
+
+  .month-copy {
+    .eyebrow {
+      color: var(--muted);
+    }
+
+    strong {
+      color: var(--text);
+    }
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--text);
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--secondary);
+  color: var(--text);
+}
