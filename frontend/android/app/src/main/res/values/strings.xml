@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Finnager</string>
+    <string name="title_activity_main">Finnager</string>
+    <string name="package_name">com.finnager.app</string>
+    <string name="custom_url_scheme">com.finnager.app</string>
+</resources>

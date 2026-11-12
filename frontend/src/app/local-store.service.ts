@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Holding, Ledger, LedgerEntry } from './finance.models';
+import { applyEntryToHolding, Holding, Ledger, LedgerEntry } from './finance.models';
 
 const DATABASE_NAME = 'finnager-local';
 const DATABASE_VERSION = 1;
@@ -73,19 +73,8 @@ export class LocalStoreService {
           return;
         }
 
-        const signedAmount = entry.type === 'income' ? entry.amount : -entry.amount;
         const recordedAt = entry.createdAt ?? new Date().toISOString();
-        const history = holding.history.map((snapshot) => {
-          const recordedAtSnapshot = snapshot.recordedAt ?? `${snapshot.date}T00:00:00.000Z`;
-          const snapshotIncludesEntry =
-            entry.date < snapshot.date ||
-            (entry.date === snapshot.date && recordedAt <= recordedAtSnapshot);
-          return snapshotIncludesEntry
-            ? { ...snapshot, value: roundCents(snapshot.value + signedAmount) }
-            : snapshot;
-        });
-
-        holdings.put({ ...holding, history });
+        holdings.put(applyEntryToHolding(holding, { ...entry, createdAt: recordedAt }));
         entries.put({ ...entry, createdAt: recordedAt });
       };
 
@@ -135,18 +124,7 @@ export class LocalStoreService {
         holdingRequest.onsuccess = () => {
           const holding = holdingRequest.result as Holding | undefined;
           if (!holding) return;
-          const signedAmount = storedEntry.type === 'income' ? storedEntry.amount : -storedEntry.amount;
-          const recordedAt = storedEntry.createdAt ?? new Date().toISOString();
-          const history = holding.history.map((snapshot) => {
-            const recordedAtSnapshot = snapshot.recordedAt ?? `${snapshot.date}T00:00:00.000Z`;
-            const snapshotIncludesEntry =
-              storedEntry.date < snapshot.date ||
-              (storedEntry.date === snapshot.date && recordedAt <= recordedAtSnapshot);
-            return snapshotIncludesEntry
-              ? { ...snapshot, value: roundCents(snapshot.value - signedAmount) }
-              : snapshot;
-          });
-          holdings.put({ ...holding, history });
+          holdings.put(applyEntryToHolding(holding, storedEntry, -1));
         };
         holdingRequest.onerror = () => {
           reject(holdingRequest.error ?? new Error('Could not update the selected asset.'));
@@ -222,8 +200,4 @@ export class LocalStoreService {
         reject(request.error ?? new Error('Could not complete the local storage request.'));
     });
   }
-}
-
-function roundCents(value: number): number {
-  return Math.round((value + Number.EPSILON) * 100) / 100;
 }

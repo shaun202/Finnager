@@ -86,6 +86,12 @@ app-root {
   font-size: 12px;
 }
 
+.ledger-picker select option,
+.mobile-ledger-actions select option {
+  background: var(--surface);
+  color: var(--surface-text);
+}
+
 .icon-button {
   display: inline-grid;
   width: 31px;
@@ -345,6 +351,16 @@ app-root {
   border: 1px solid #e9ede8;
   color: #596a5f;
   font-size: 22px;
+}
+
+.month-arrow svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
 }
 
 .today-button {
@@ -838,6 +854,10 @@ app-root {
   white-space: nowrap;
 }
 
+.activity-amount.positive {
+  color: #2563eb !important;
+}
+
 .empty-inline {
   padding: 22px 4px 5px;
   color: #8d9991;
@@ -1270,14 +1290,20 @@ app-root .mobile-nav button.active {
   }
 
   .topbar {
-    min-height: 70px;
-    padding: 10px 20px;
+    display: grid;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "brand theme add"
+      "heading heading heading";
+    gap: 9px;
+    padding: 12px 18px;
   }
 
   .mobile-brand {
+    grid-area: brand;
     display: flex;
-    gap: 7px;
-    font-size: 16px;
+    justify-self: start;
   }
 
   .mobile-brand .brand-mark {
@@ -1288,7 +1314,9 @@ app-root .mobile-nav button.active {
   }
 
   .page-heading {
-    margin-left: 12px;
+    grid-area: heading;
+    min-width: 0;
+    margin-left: 0;
   }
 
   .page-heading .eyebrow {
@@ -1301,7 +1329,9 @@ app-root .mobile-nav button.active {
   }
 
   .top-add {
+    grid-area: add;
     min-height: 35px;
+    margin: 0;
     padding: 0 11px;
     font-size: 10px;
   }
@@ -1311,7 +1341,29 @@ app-root .mobile-nav button.active {
   }
 
   .month-toolbar {
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-bottom: 14px;
+  }
+
+  .month-controls {
+    gap: 5px;
+    margin-left: auto;
+  }
+
+  .month-controls .month-arrow {
+    width: 36px;
+    min-width: 36px;
+    flex: 0 0 36px;
+  }
+
+  .month-controls .today-button {
+    min-width: 88px;
+    flex: 0 0 auto;
+    padding-right: 8px;
+    padding-left: 8px;
+    white-space: nowrap;
   }
 
   .month-copy .eyebrow {
@@ -1835,6 +1887,10 @@ app-root .activity-amount {
   color: var(--negative) !important;
 }
 
+app-root .activity-amount.positive {
+  color: #2563eb !important;
+}
+
 app-root .button:not(.button-primary),
 app-root .icon-button,
 app-root .theme-toggle,
@@ -1870,21 +1926,16 @@ app-root .ledger-picker {
   border-color: var(--surface-border);
 }
 
-@media (max-width: 760px) {
-  .theme-toggle {
-    min-width: 33px;
-    width: 33px;
-    height: 33px;
-    margin-left: auto;
-    padding: 0;
-  }
+app-root .theme-toggle > span:first-child,
+app-root .sidebar .ledger-picker select,
+app-root .mobile-ledger-actions select,
+app-root .mobile-ledger-edit {
+  color: var(--surface-text);
+}
 
+@media (max-width: 760px) {
   .theme-label {
     display: none;
-  }
-
-  .top-add {
-    margin-left: 7px;
   }
 
   .mobile-ledger-controls {
@@ -1894,7 +1945,7 @@ app-root .ledger-picker {
   }
 
   .mobile-ledger-controls > label {
-    color: var(--text);
+    color: var(--surface-text);
     font-size: 12px;
     font-weight: 650;
   }
@@ -1913,7 +1964,7 @@ app-root .ledger-picker {
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--surface);
-    color: var(--text);
+    color: var(--surface-text);
     font: inherit;
     font-size: 12px;
   }

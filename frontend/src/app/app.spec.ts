@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { App } from './app';
-import { Holding, Ledger, LedgerEntry } from './finance.models';
+import { applyEntryToHolding, Holding, Ledger, LedgerEntry } from './finance.models';
 import { LocalStoreService } from './local-store.service';
 
 describe('App', () => {
@@ -148,6 +148,59 @@ describe('App', () => {
     expect(app.netWorth()).toBe(250);
   });
 
+  it('updates the entry and asset balance before the follow-up refresh finishes', async () => {
+    const currentLedger = ledger('main');
+    const cash = holding(currentLedger.id, 'asset', [
+      { date: '0001-01-01', value: 100, recordedAt: '0001-01-01T00:00:00.000Z' },
+      { date: '2026-06-01', value: 200, recordedAt: '2026-06-01T12:00:00.000Z' },
+    ], 'cash');
+    let finishEntriesRefresh!: (entries: LedgerEntry[]) => void;
+    let storedCash = cash;
+    app.ledgers.set([currentLedger]);
+    app.selectedLedgerId.set(currentLedger.id);
+    app.selectedMonth.set(new Date(2026, 0, 1));
+    app.holdings.set([cash]);
+    app.entryDraft.assetId = cash.id;
+    app.entryDraft.amount = 25;
+    app.entryDraft.type = 'income';
+    app.entryDraft.category = 'Pay';
+    app.entryDraft.date = '2026-01-15';
+    store.saveEntry.and.callFake(async (savedEntry: LedgerEntry) => {
+      storedCash = applyEntryToHolding(storedCash, savedEntry);
+    });
+    store.getEntries.and.returnValue(
+      new Promise<LedgerEntry[]>((resolve) => {
+        finishEntriesRefresh = resolve;
+      }),
+    );
+    store.getHoldings.and.callFake(async () => [storedCash]);
+
+    const saving = app.saveEntry();
+    await store.saveEntry.calls.mostRecent().returnValue;
+
+    expect(app.entries().length).toBe(1);
+    expect(app.monthIncome()).toBe(25);
+    expect(app.assetTotal()).toBe(125);
+    app.selectedMonth.set(new Date(2026, 6, 1));
+    expect(app.assetTotal()).toBe(225);
+
+    finishEntriesRefresh(app.entries());
+    await saving;
+
+    expect(app.assetTotal()).toBe(225);
+  });
+
+  it('omits currency choices and symbols from the app UI', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+    app.showDialog('ledger');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[name="ledgerCurrency"]')).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Currency');
+    expect(fixture.nativeElement.textContent).not.toContain('$');
+  });
+
   it('keeps overview focused and places worth metrics on holdings', async () => {
     fixture.detectChanges();
     await fixture.whenStable();
@@ -156,6 +209,8 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelectorAll('.overview-metrics .metric-card').length).toBe(2);
     expect(fixture.nativeElement.querySelector('.worth-card')).toBeNull();
     expect(fixture.nativeElement.querySelector('.mobile-ledger-controls')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.today-button').textContent.trim()).toBe('This month');
+    expect(fixture.nativeElement.querySelectorAll('.month-arrow svg').length).toBe(2);
 
     app.changePage('holdings');
     fixture.detectChanges();
@@ -176,6 +231,21 @@ describe('App', () => {
     expect(getComputedStyle(document.documentElement).getPropertyValue('--app-bg').trim()).toBe('#070e08');
     expect(getComputedStyle(document.documentElement).getPropertyValue('--chrome').trim()).toBe('#206934');
     expect(getComputedStyle(document.documentElement).getPropertyValue('--surface').trim()).toBe('#e7e9e7');
+    expect(getComputedStyle(fixture.nativeElement.querySelector('#ledger-select')).color).toBe(
+      'rgb(5, 8, 5)',
+    );
+    expect(
+      getComputedStyle(fixture.nativeElement.querySelector('.theme-toggle > span:first-child')).color,
+    ).toBe('rgb(5, 8, 5)');
+
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    app.entries.set([entry(app.selectedLedgerId(), 75, 'income', today)]);
+    app.changePage('activity');
+    fixture.detectChanges();
+    expect(getComputedStyle(fixture.nativeElement.querySelector('.activity-amount')).color).toBe(
+      'rgb(37, 99, 235)',
+    );
   });
 });
 

@@ -50,7 +50,7 @@
 
   <main class="main-content">
     <header class="topbar">
-      <div class="mobile-brand"><span class="brand-mark">f</span> finnager<span class="brand-period">.</span></div>
+      <div class="mobile-brand" aria-label="Finnager"><span class="brand-mark">f</span></div>
       <div class="page-heading">
         <span class="eyebrow">{{ activeLedger?.name || 'MY FINANCES' }}</span>
         <h1>{{ pageTitle }}</h1>
@@ -108,9 +108,13 @@
             <strong>{{ formatMonth(selectedMonth()) }}</strong>
           </div>
           <div class="month-controls">
-            <button type="button" class="icon-button month-arrow" aria-label="Previous month" (click)="shiftMonth(-1)">‹</button>
+            <button type="button" class="icon-button month-arrow" aria-label="Previous month" (click)="shiftMonth(-1)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+            </button>
             <button type="button" class="today-button" [disabled]="monthIsCurrent()" (click)="goToThisMonth()">This month</button>
-            <button type="button" class="icon-button month-arrow" aria-label="Next month" (click)="shiftMonth(1)">›</button>
+            <button type="button" class="icon-button month-arrow" aria-label="Next month" (click)="shiftMonth(1)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+            </button>
           </div>
         </div>
 
@@ -118,12 +122,12 @@
           <div class="metric-grid overview-metrics">
             <article class="metric-card">
               <div class="metric-top"><span class="metric-icon income-icon">↙</span><span class="metric-label">INCOME</span><span class="metric-period">THIS MONTH</span></div>
-              <strong class="metric-value">{{ monthIncome() | currency:currencyCode():'symbol':'1.2-2' }}</strong>
+              <strong class="metric-value">{{ monthIncome() | number:'1.2-2' }}</strong>
               <span class="metric-hint">Received this month</span>
             </article>
             <article class="metric-card">
               <div class="metric-top"><span class="metric-icon expense-icon">↗</span><span class="metric-label">EXPENSES</span><span class="metric-period">THIS MONTH</span></div>
-              <strong class="metric-value">{{ monthExpenses() | currency:currencyCode():'symbol':'1.2-2' }}</strong>
+              <strong class="metric-value">{{ monthExpenses() | number:'1.2-2' }}</strong>
               <span class="metric-hint">Spent this month</span>
             </article>
           </div>
@@ -139,7 +143,7 @@
                   <div class="activity-row">
                     <span class="activity-mark" [class.income-mark]="entry.type === 'income'">{{ entry.type === 'income' ? '↙' : '↗' }}</span>
                     <div class="activity-description"><strong>{{ entry.category }}</strong><span>{{ entry.note || entry.type }} · {{ entryAssetName(entry.assetId) }} · {{ entry.date | date:'MMM d' }}</span></div>
-                    <strong class="activity-amount" [class.positive]="entry.type === 'income'">{{ entry.type === 'income' ? '+' : '−' }}{{ entry.amount | currency:currencyCode():'symbol':'1.2-2' }}</strong>
+                    <strong class="activity-amount" [class.positive]="entry.type === 'income'">{{ entry.type === 'income' ? '+' : '−' }}{{ entry.amount | number:'1.2-2' }}</strong>
                   </div>
                 }
               </div>
@@ -156,9 +160,9 @@
               <button class="button button-primary" type="button" (click)="showDialog('entry')">＋ Add entry</button>
             </div>
             <div class="activity-summary">
-              <div><span>Income</span><strong class="positive">{{ monthIncome() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
-              <div><span>Expenses</span><strong class="negative">{{ monthExpenses() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
-              <div><span>Net flow</span><strong>{{ monthIncome() - monthExpenses() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
+              <div><span>Income</span><strong class="positive">{{ monthIncome() | number:'1.2-2' }}</strong></div>
+              <div><span>Expenses</span><strong class="negative">{{ monthExpenses() | number:'1.2-2' }}</strong></div>
+              <div><span>Net flow</span><strong>{{ monthIncome() - monthExpenses() | number:'1.2-2' }}</strong></div>
             </div>
             @if (monthEntries().length) {
               <div class="activity-list full-activity">
@@ -166,7 +170,7 @@
                   <div class="activity-row">
                     <span class="activity-mark" [class.income-mark]="entry.type === 'income'">{{ entry.type === 'income' ? '↙' : '↗' }}</span>
                     <div class="activity-description"><strong>{{ entry.category }}</strong><span>{{ entry.note || entry.type }} · {{ entryAssetName(entry.assetId) }} · {{ entry.date | date:'MMM d, y' }}</span></div>
-                    <strong class="activity-amount" [class.positive]="entry.type === 'income'">{{ entry.type === 'income' ? '+' : '−' }}{{ entry.amount | currency:currencyCode():'symbol':'1.2-2' }}</strong>
+                    <strong class="activity-amount" [class.positive]="entry.type === 'income'">{{ entry.type === 'income' ? '+' : '−' }}{{ entry.amount | number:'1.2-2' }}</strong>
                     <button class="icon-button delete-button" type="button" [attr.aria-label]="'Delete ' + entry.category" (click)="removeEntry(entry)">×</button>
                   </div>
                 }
@@ -185,12 +189,12 @@
           <section class="worth-card">
             <div class="worth-copy">
               <span class="card-eyebrow"><span class="worth-dot"></span> ESTIMATED NET WORTH</span>
-              <div class="worth-amount">{{ netWorth() | currency:currencyCode():'symbol':'1.2-2' }}</div>
+              <div class="worth-amount">{{ netWorth() | number:'1.2-2' }}</div>
               <div class="worth-change">
                 @if (worthChange() !== null) {
                   <span [class.negative]="(worthChange() ?? 0) < 0">
                     {{ (worthChange() ?? 0) >= 0 ? '↗' : '↘' }}
-                    {{ (worthChange() ?? 0) | currency:currencyCode():'symbol':'1.2-2' }}
+                    {{ (worthChange() ?? 0) | number:'1.2-2' }}
                   </span>
                   <span>vs. last month</span>
                 } @else {
@@ -202,7 +206,7 @@
               <span class="orbit orbit-one"></span><span class="orbit orbit-two"></span>
               <span class="worth-spark">↗</span>
             </div>
-            <div class="worth-foot"><span>Total assets</span><strong>{{ assetTotal() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
+            <div class="worth-foot"><span>Total assets</span><strong>{{ assetTotal() | number:'1.2-2' }}</strong></div>
           </section>
           <div class="dashboard-grid holdings-dashboard">
             <section class="panel trend-panel">
@@ -214,7 +218,7 @@
                 <div class="chart" role="img" aria-label="Net worth trend for the last six months">
                   @for (point of trend(); track point.label + $index) {
                     <div class="chart-column">
-                      <span class="chart-value">{{ point.value | currency:currencyCode():'symbol':'1.0-0' }}</span>
+                      <span class="chart-value">{{ point.value | number:'1.0-0' }}</span>
                       <div class="chart-track">
                         <div class="chart-bar" [class.below-zero]="point.value < 0" [style.height.%]="point.height"></div>
                       </div>
@@ -228,17 +232,17 @@
             </section>
             <section class="panel carry-panel">
               <div class="panel-heading"><div><h2>Month at a glance</h2><p>Balances roll forward automatically</p></div><span class="calendar-mark">▦</span></div>
-              <div class="carry-row"><span>Carried forward</span><strong>{{ carryForward() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
-              <div class="carry-row"><span>Income</span><strong class="positive">+ {{ monthIncome() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
-              <div class="carry-row"><span>Expenses</span><strong class="negative">− {{ monthExpenses() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
-              <div class="carry-total"><span>Closing asset balance</span><strong>{{ closingCash() | currency:currencyCode():'symbol':'1.2-2' }}</strong></div>
+              <div class="carry-row"><span>Carried forward</span><strong>{{ carryForward() | number:'1.2-2' }}</strong></div>
+              <div class="carry-row"><span>Income</span><strong class="positive">+ {{ monthIncome() | number:'1.2-2' }}</strong></div>
+              <div class="carry-row"><span>Expenses</span><strong class="negative">− {{ monthExpenses() | number:'1.2-2' }}</strong></div>
+              <div class="carry-total"><span>Closing asset balance</span><strong>{{ closingCash() | number:'1.2-2' }}</strong></div>
               <p class="carry-note">Previous months stay saved. Each entry updates its selected asset balance.</p>
             </section>
           </div>
           <div class="metric-grid holdings-summary">
-            <article class="metric-card"><div class="metric-top"><span class="metric-icon asset-icon">◇</span><span class="metric-label">TOTAL ASSETS</span></div><strong class="metric-value">{{ assetTotal() | currency:currencyCode():'symbol':'1.2-2' }}</strong><span class="metric-hint">Owned by you</span></article>
-            <article class="metric-card"><div class="metric-top"><span class="metric-icon debt-icon">−</span><span class="metric-label">TOTAL LIABILITIES</span></div><strong class="metric-value">{{ liabilityTotal() | currency:currencyCode():'symbol':'1.2-2' }}</strong><span class="metric-hint">Owed by you</span></article>
-            <article class="metric-card"><div class="metric-top"><span class="metric-icon net-icon">↗</span><span class="metric-label">NET WORTH</span></div><strong class="metric-value">{{ netWorth() | currency:currencyCode():'symbol':'1.2-2' }}</strong><span class="metric-hint">Assets − liabilities</span></article>
+            <article class="metric-card"><div class="metric-top"><span class="metric-icon asset-icon">◇</span><span class="metric-label">TOTAL ASSETS</span></div><strong class="metric-value">{{ assetTotal() | number:'1.2-2' }}</strong><span class="metric-hint">Owned by you</span></article>
+            <article class="metric-card"><div class="metric-top"><span class="metric-icon debt-icon">−</span><span class="metric-label">TOTAL LIABILITIES</span></div><strong class="metric-value">{{ liabilityTotal() | number:'1.2-2' }}</strong><span class="metric-hint">Owed by you</span></article>
+            <article class="metric-card"><div class="metric-top"><span class="metric-icon net-icon">↗</span><span class="metric-label">NET WORTH</span></div><strong class="metric-value">{{ netWorth() | number:'1.2-2' }}</strong><span class="metric-hint">Assets − liabilities</span></article>
           </div>
           <div class="holdings-grid">
             @for (type of holdingTypes; track type) {
@@ -248,7 +252,7 @@
                   <div class="holding-row">
                     <span class="holding-symbol" [class.debt-symbol]="type === 'liability'">{{ type === 'asset' ? '◇' : '−' }}</span>
                     <div class="activity-description"><strong>{{ holding.name }}</strong><span>Value as of {{ selectedMonth() | date:'MMMM y' }}</span></div>
-                    <strong>{{ holding.value | currency:currencyCode():'symbol':'1.2-2' }}</strong>
+                    <strong>{{ holding.value | number:'1.2-2' }}</strong>
                     @if (!holding.system) {
                       <button class="icon-button" type="button" [attr.aria-label]="'Edit ' + holding.name" (click)="editHolding(holding)">✎</button>
                       <button class="icon-button delete-button" type="button" [attr.aria-label]="'Remove ' + holding.name" (click)="removeHolding(holding)">×</button>
@@ -299,7 +303,7 @@
             </div>
           } @else {
           <label>Amount
-            <div class="input-prefix"><span>{{ currencySymbol() }}</span><input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required [(ngModel)]="entryDraft.amount"></div>
+            <input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required [(ngModel)]="entryDraft.amount">
           </label>
           <label>Category
             <input name="category" type="text" maxlength="60" placeholder="e.g. Groceries, Salary" required [(ngModel)]="entryDraft.category">
@@ -320,7 +324,7 @@
           <label>Type<select name="holdingType" [(ngModel)]="holdingDraft.type"><option value="asset">Asset — something you own</option><option value="liability">Liability — something you owe</option></select></label>
           <label>Name<input name="holdingName" type="text" maxlength="70" placeholder="e.g. Savings account, Car loan" required [(ngModel)]="holdingDraft.name"></label>
           <label>Current value
-            <div class="input-prefix"><span>{{ currencySymbol() }}</span><input name="holdingValue" type="number" min="0" step="0.01" placeholder="0.00" required [(ngModel)]="holdingDraft.value"></div>
+            <input name="holdingValue" type="number" min="0" step="0.01" placeholder="0.00" required [(ngModel)]="holdingDraft.value">
           </label>
           @if (storageError()) { <p class="form-error" role="alert">{{ storageError() }}</p> }
           <button class="button button-primary dialog-submit" type="submit">Save value</button>
@@ -331,15 +335,8 @@
         <div class="dialog-heading"><span class="dialog-icon">▤</span><div><h2>{{ editingLedgerId() ? 'Ledger settings' : 'Create a ledger' }}</h2><p>A separate space with its own entries and balances.</p></div></div>
         <form (ngSubmit)="saveLedger()">
           <label>Ledger name<input name="ledgerName" type="text" maxlength="50" placeholder="e.g. Personal, Travel fund" required [(ngModel)]="ledgerDraft.name"></label>
-          <label>Currency
-            <select name="ledgerCurrency" [(ngModel)]="ledgerDraft.currency">
-              @for (currency of currencyOptions; track currency.code) {
-                <option [value]="currency.code">{{ currency.label }}</option>
-              }
-            </select>
-          </label>
           <label>Starting cash balance
-            <div class="input-prefix"><span>{{ currencySymbol(ledgerDraft.currency) }}</span><input name="openingBalance" type="number" step="0.01" placeholder="0.00" [(ngModel)]="ledgerDraft.openingBalance"></div>
+            <input name="openingBalance" type="number" step="0.01" placeholder="0.00" [(ngModel)]="ledgerDraft.openingBalance">
           </label>
           @if (storageError()) { <p class="form-error" role="alert">{{ storageError() }}</p> }
           <button class="button button-primary dialog-submit" type="submit">{{ editingLedgerId() ? 'Save changes' : 'Create ledger' }}</button>

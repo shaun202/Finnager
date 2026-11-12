@@ -36,3 +36,27 @@ export interface Holding {
   deletedAt?: string;
   system?: boolean;
 }
+
+export function applyEntryToHolding(
+  holding: Holding,
+  entry: LedgerEntry,
+  direction: 1 | -1 = 1,
+): Holding {
+  const signedAmount =
+    (entry.type === 'income' ? entry.amount : -entry.amount) * direction;
+  const recordedAt = entry.createdAt ?? new Date().toISOString();
+  const history = holding.history.map((snapshot) => {
+    const recordedAtSnapshot = snapshot.recordedAt ?? `${snapshot.date}T00:00:00.000Z`;
+    const snapshotIncludesEntry =
+      entry.date < snapshot.date ||
+      (entry.date === snapshot.date && recordedAt <= recordedAtSnapshot);
+    return snapshotIncludesEntry
+      ? {
+          ...snapshot,
+          value: Math.round((snapshot.value + signedAmount + Number.EPSILON) * 100) / 100,
+        }
+      : snapshot;
+  });
+
+  return { ...holding, history };
+}

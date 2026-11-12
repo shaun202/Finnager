@@ -1,11 +1,19 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, HostBinding, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Holding, HoldingType, Ledger, LedgerEntry, EntryType } from './finance.models';
+import {
+  applyEntryToHolding,
+  Holding,
+  HoldingType,
+  Ledger,
+  LedgerEntry,
+  EntryType,
+} from './finance.models';
 import { LocalStoreService } from './local-store.service';
 
 type Page = 'overview' | 'activity' | 'holdings';
 type Dialog = 'entry' | 'holding' | 'ledger' | null;
+const DEFAULT_CURRENCY = 'USD';
 
 interface MonthPoint {
   label: string;
@@ -13,14 +21,9 @@ interface MonthPoint {
   height: number;
 }
 
-interface CurrencyOption {
-  code: string;
-  label: string;
-}
-
 @Component({
   selector: 'app-root',
-  imports: [CurrencyPipe, DatePipe, FormsModule],
+  imports: [DatePipe, DecimalPipe, FormsModule],
   templateUrl: './app.html',
 })
 export class App implements OnInit {
@@ -28,18 +31,6 @@ export class App implements OnInit {
   readonly entries = signal<LedgerEntry[]>([]);
   readonly holdings = signal<Holding[]>([]);
   readonly holdingTypes: HoldingType[] = ['asset', 'liability'];
-  readonly currencyOptions: CurrencyOption[] = [
-    { code: 'USD', label: 'USD — US Dollar' },
-    { code: 'SGD', label: 'SGD — Singapore Dollar' },
-    { code: 'EUR', label: 'EUR — Euro' },
-    { code: 'GBP', label: 'GBP — British Pound' },
-    { code: 'AUD', label: 'AUD — Australian Dollar' },
-    { code: 'CAD', label: 'CAD — Canadian Dollar' },
-    { code: 'MYR', label: 'MYR — Malaysian Ringgit' },
-    { code: 'INR', label: 'INR — Indian Rupee' },
-    { code: 'JPY', label: 'JPY — Japanese Yen' },
-    { code: 'NZD', label: 'NZD — New Zealand Dollar' },
-  ];
   readonly selectedLedgerId = signal('');
   readonly selectedMonth = signal(monthStart(new Date()));
   readonly page = signal<Page>('overview');
@@ -60,9 +51,8 @@ export class App implements OnInit {
   } = this.newEntryDraft();
   readonly holdingDraft: { type: HoldingType; name: string; value: number | null } =
     this.newHoldingDraft();
-  readonly ledgerDraft: { name: string; currency: string; openingBalance: number | null } = {
+  readonly ledgerDraft: { name: string; openingBalance: number | null } = {
     name: '',
-    currency: 'USD',
     openingBalance: 0,
   };
   readonly monthEntries = computed(() => {
@@ -162,7 +152,7 @@ export class App implements OnInit {
         const firstLedger: Ledger = {
           id: crypto.randomUUID(),
           name: 'My first ledger',
-          currency: 'USD',
+          currency: DEFAULT_CURRENCY,
           openingBalance: 0,
           createdAt: todayKey(),
         };
@@ -218,7 +208,6 @@ export class App implements OnInit {
     if (dialog === 'ledger') {
       this.editingLedgerId.set('');
       this.ledgerDraft.name = '';
-      this.ledgerDraft.currency = this.activeLedger?.currency ?? 'USD';
       this.ledgerDraft.openingBalance = 0;
     }
   }
@@ -251,6 +240,12 @@ export class App implements OnInit {
     };
     await this.persist(async () => {
       await this.store.saveEntry(entry);
+      this.holdings.update((holdings) =>
+        holdings.map((holding) =>
+          holding.id === entry.assetId ? applyEntryToHolding(holding, entry) : holding,
+        ),
+      );
+      this.entries.update((entries) => [...entries, entry]);
       this.notice.set(`${capitalize(entry.type)} added to ${this.activeLedger?.name}.`);
     });
   }
@@ -259,6 +254,12 @@ export class App implements OnInit {
     if (!globalThis.confirm(`Delete this ${entry.type} entry?`)) return;
     await this.persist(async () => {
       await this.store.deleteEntry(entry);
+      this.holdings.update((holdings) =>
+        holdings.map((holding) =>
+          holding.id === entry.assetId ? applyEntryToHolding(holding, entry, -1) : holding,
+        ),
+      );
+      this.entries.update((entries) => entries.filter((item) => item.id !== entry.id));
       this.notice.set('Entry deleted.');
     });
   }
@@ -345,7 +346,9 @@ export class App implements OnInit {
     const ledger: Ledger = {
       id: this.editingLedgerId() || crypto.randomUUID(),
       name,
-      currency: this.ledgerDraft.currency,
+      currency: this.editingLedgerId()
+        ? this.activeLedger?.currency ?? DEFAULT_CURRENCY
+        : DEFAULT_CURRENCY,
       openingBalance: cents(openingBalance),
       createdAt: this.editingLedgerId()
         ? this.activeLedger?.createdAt ?? todayKey()
@@ -383,27 +386,9 @@ export class App implements OnInit {
     if (!ledger) return;
     this.editingLedgerId.set(ledger.id);
     this.ledgerDraft.name = ledger.name;
-    this.ledgerDraft.currency = ledger.currency ?? 'USD';
     this.ledgerDraft.openingBalance = ledger.openingBalance;
     this.storageError.set('');
     this.dialog.set('ledger');
-  }
-
-  currencyCode(): string {
-    return this.activeLedger?.currency ?? 'USD';
-  }
-
-  currencySymbol(code = this.currencyCode()): string {
-    try {
-      return new Intl.NumberFormat(undefined, {
-        style: 'currency',
-        currency: code,
-      })
-        .formatToParts(0)
-        .find((part) => part.type === 'currency')?.value ?? code;
-    } catch {
-      return code;
-    }
   }
 
   exportBackup(): void {

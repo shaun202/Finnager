@@ -55,6 +55,13 @@ html[data-theme="dark"] {
   --on-primary: #070e08;
 }
 
+html[data-theme="dark"] .sidebar .ledger-picker select,
+html[data-theme="dark"] .mobile-ledger-actions select,
+html[data-theme="dark"] .mobile-ledger-edit,
+html[data-theme="dark"] .theme-toggle > span:first-child {
+  color: #050805 !important;
+}
+
 /* Month navigation toolbar buttons */
 .month-controls {
   display: flex;
@@ -86,6 +93,8 @@ html[data-theme="dark"] {
 
   .month-arrow {
     width: 2.25rem;
+    min-width: 2.25rem;
+    flex: 0 0 2.25rem;
     height: 2.25rem;
     display: inline-flex;
     align-items: center;
@@ -96,8 +105,11 @@ html[data-theme="dark"] {
   }
 
   .today-button {
+    min-width: 5.5rem;
+    flex: 0 0 auto;
     padding: 0.4rem 1rem;
     font-size: 0.875rem;
+    white-space: nowrap;
   }
 }
 
