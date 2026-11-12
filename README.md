@@ -1,22 +1,8 @@
-# Finnager
+<p align="center">
+  <img src="frontend/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="Project Logo" width="300">
+</p>
 
 Finnager is an offline-first personal finance tracker designed for Android as an installable Progressive Web App (PWA). The Angular app stores data in the browser's IndexedDB on the device; it has no cloud service or NestJS backend.
-
-## Repository structure
-
-```text
-.
-├── .github/
-│   └── workflows/       # Build and test automation
-├── docs/                 # Architecture and project documentation
-└── frontend/             # Angular PWA
-    ├── android/          # Capacitor Android project
-    ├── public/           # PWA manifest and static assets
-    └── src/
-        └── app/          # Application UI, finance models, and local storage
-```
-
-Finnager currently runs entirely in the browser, so there is no backend or database server to install. See [the architecture notes](docs/ARCHITECTURE.md) for the application boundaries and data flow.
 
 ## Run locally
 
@@ -33,6 +19,11 @@ Open the local URL printed by Angular CLI. The app creates a default ledger the 
 ## Use on Android
 
 Finnager can run as an installable PWA or as a native Android app. For the PWA, deploy the production build to a static web host that serves the app over HTTPS, then open its URL in Chrome on Android and choose **Install app** (or **Add to Home screen**). The service worker caches the app shell for offline use after the first successful load.
+
+
+### Direct Download
+https://drive.google.com/uc?export=download&id=1ZBi7aFM3LcSduujxAPy2ZexLx-iM-KD5
+
 
 To build a directly installable Android debug APK, install Android Studio with Android SDK Platform 35 and JDK 21. Make sure `ANDROID_HOME` points to your Android SDK directory if it is not installed in the standard location, then run:
 
@@ -73,6 +64,22 @@ cd frontend
 npm run build
 npm test -- --watch=false
 ```
+
+## Repository structure
+
+```text
+.
+├── .github/
+│   └── workflows/       # Build and test automation
+├── docs/                 # Architecture and project documentation
+└── frontend/             # Angular PWA
+    ├── android/          # Capacitor Android project
+    ├── public/           # PWA manifest and static assets
+    └── src/
+        └── app/          # Application UI, finance models, and local storage
+```
+
+Finnager currently runs entirely in the browser, so there is no backend or database server to install. See [the architecture notes](docs/ARCHITECTURE.md) for the application boundaries and data flow.
 
 ## License
 
