@@ -47,7 +47,7 @@ Supported ledger currencies include USD, SGD, EUR, GBP, AUD, CAD, MYR, INR, JPY 
 
 ## Local data note
 
-Ledger data stays in the browser profile on the device and is not synced or encrypted by Finnager. Clearing browser/site data can remove it. Download backups regularly and keep them somewhere safe. The PWA requires HTTPS for installation and offline service-worker features, except when running on localhost.
+Ledger data is saved to IndexedDB in the browser profile on the device, so closing and reopening the app does not clear it. Finnager also asks the browser to protect this data from automatic storage cleanup; if the browser declines or does not support that request, the app displays a warning. Data is not synced or encrypted by Finnager. Clearing browser/site data, uninstalling the browser or PWA, or losing the device can still remove it, so download backups regularly and keep them somewhere safe. The PWA requires HTTPS for installation and offline service-worker features, except when running on localhost.
 
 ## Frontend commands
 

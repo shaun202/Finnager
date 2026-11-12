@@ -11,6 +11,7 @@ describe('App', () => {
   beforeEach(async () => {
     store = jasmine.createSpyObj<LocalStoreService>('LocalStoreService', [
       'getLedgers',
+      'requestPersistentStorage',
       'saveLedger',
       'saveLedgerWithOpeningAsset',
       'getEntries',
@@ -23,6 +24,7 @@ describe('App', () => {
       'saveHolding',
     ]);
     store.getLedgers.and.resolveTo([]);
+    store.requestPersistentStorage.and.resolveTo(true);
     store.saveLedger.and.resolveTo();
     store.saveLedgerWithOpeningAsset.and.resolveTo();
     store.saveHolding.and.resolveTo();
@@ -53,6 +55,15 @@ describe('App', () => {
     );
     expect(app.ledgers().length).toBe(1);
     expect(app.selectedLedgerId()).toBe(app.ledgers()[0].id);
+  });
+
+  it('warns when the browser cannot protect local data from automatic cleanup', async () => {
+    store.requestPersistentStorage.and.resolveTo(false);
+
+    await app.initialize();
+
+    expect(app.storageWarning()).toContain('may be removed by automatic storage cleanup');
+    expect(app.loading()).toBeFalse();
   });
 
   it('loads only the selected ledger data', async () => {

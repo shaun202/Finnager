@@ -41,7 +41,7 @@
     <div class="sidebar-foot">
       <div class="privacy-card">
         <span class="privacy-icon">◉</span>
-        <div><strong>Your money, your device</strong><p>Stored privately on this device.</p></div>
+        <div><strong>Your money, your device</strong><p>Saved in browser storage. Back up regularly.</p></div>
       </div>
       <button class="backup-button" type="button" (click)="exportBackup()">↓ &nbsp; Download a backup</button>
       <div class="sidebar-footer">FINNAGER <span>·</span> PERSONAL FINANCE</div>
@@ -67,6 +67,11 @@
       <div class="alert" role="alert">
         <span>{{ storageError() }}</span>
         <button type="button" aria-label="Dismiss error" (click)="storageError.set('')">×</button>
+      </div>
+    }
+    @if (storageWarning()) {
+      <div class="storage-warning" role="status">
+        <span>{{ storageWarning() }}</span>
       </div>
     }
     @if (notice()) {

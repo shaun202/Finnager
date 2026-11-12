@@ -849,7 +849,8 @@ app-root {
 }
 
 .alert,
-.notice {
+.notice,
+.storage-warning {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -870,6 +871,12 @@ app-root {
   border: 1px solid #cfe5d3;
   background: #f1f8f1;
   color: #286744;
+}
+
+.storage-warning {
+  border: 1px solid #e8d8a7;
+  background: #fff9e9;
+  color: #71571a;
 }
 
 .alert button,

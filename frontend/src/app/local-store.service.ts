@@ -8,6 +8,12 @@ const DATABASE_VERSION = 1;
 export class LocalStoreService {
   private database?: Promise<IDBDatabase>;
 
+  requestPersistentStorage(): Promise<boolean> {
+    const storage = globalThis.navigator?.storage;
+    if (!storage?.persist) return Promise.resolve(false);
+    return storage.persist();
+  }
+
   getLedgers(): Promise<Ledger[]> {
     return this.request('ledgers', 'readonly', (store) => store.getAll());
   }

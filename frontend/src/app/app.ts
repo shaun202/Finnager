@@ -45,6 +45,7 @@ export class App implements OnInit {
   readonly page = signal<Page>('overview');
   readonly dialog = signal<Dialog>(null);
   readonly storageError = signal('');
+  readonly storageWarning = signal('');
   readonly notice = signal('');
   readonly loading = signal(true);
   readonly editingHoldingId = signal('');
@@ -171,6 +172,18 @@ export class App implements OnInit {
       this.ledgers.set(ledgers.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
       this.selectedLedgerId.set(ledgers[0].id);
       await this.refreshLedgerData();
+      try {
+        const persistent = await this.store.requestPersistentStorage();
+        if (!persistent) {
+          this.storageWarning.set(
+            'Your data is saved in this browser, but it may be removed by automatic storage cleanup. Download a backup regularly.',
+          );
+        }
+      } catch (error) {
+        this.storageWarning.set(
+          `Could not confirm protection from browser storage cleanup. Download a backup regularly. ${errorMessage(error, '')}`,
+        );
+      }
     } catch (error) {
       this.storageError.set(errorMessage(error, 'Could not load your local financial data.'));
     } finally {
