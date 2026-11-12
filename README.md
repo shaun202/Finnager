@@ -20,7 +20,7 @@ Finnager currently runs entirely in the browser, so there is no backend or datab
 
 ## Run locally
 
-Requirements: Node.js 20.19 or newer.
+Requirements: Node.js 20.19+, 22.12+, or 24+ (Angular-supported versions).
 
 ```powershell
 cd frontend
