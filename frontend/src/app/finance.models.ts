@@ -1,4 +1,5 @@
 export type EntryType = 'income' | 'expense';
+export type EntryMode = 'transaction' | 'payment' | 'transfer';
 export type HoldingType = 'asset' | 'liability';
 
 export interface Ledger {
@@ -13,7 +14,9 @@ export interface LedgerEntry {
   id: string;
   ledgerId: string;
   assetId?: string;
+  targetAssetId?: string;
   type: EntryType;
+  mode?: EntryMode;
   amount: number;
   category: string;
   note: string;
@@ -42,8 +45,25 @@ export function applyEntryToHolding(
   entry: LedgerEntry,
   direction: 1 | -1 = 1,
 ): Holding {
-  const signedAmount =
-    (entry.type === 'income' ? entry.amount : -entry.amount) * direction;
+  const deltaForHolding = (holdingId: string): number => {
+    if (entry.assetId === holdingId) {
+      if (entry.mode === 'transfer') {
+        return -entry.amount * direction;
+      }
+      return ((entry.type === 'income' ? entry.amount : -entry.amount) * direction);
+    }
+    if (entry.targetAssetId === holdingId) {
+      if (entry.mode === 'transfer') {
+        return entry.amount * direction;
+      }
+      if (entry.mode === 'payment') {
+        return -entry.amount * direction;
+      }
+    }
+    return 0;
+  };
+
+  const signedAmount = deltaForHolding(holding.id);
   const recordedAt = entry.createdAt ?? new Date().toISOString();
   const history = holding.history.map((snapshot) => {
     const recordedAtSnapshot = snapshot.recordedAt ?? `${snapshot.date}T00:00:00.000Z`;

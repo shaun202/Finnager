@@ -283,38 +283,97 @@
     <section class="dialog" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
       <button class="dialog-close" type="button" aria-label="Close dialog" (click)="closeDialog()">×</button>
       @if (dialog() === 'entry') {
-        <div class="dialog-heading"><span class="dialog-icon">↕</span><div><h2>Add an entry</h2><p>Choose the asset affected by this income or expense.</p></div></div>
+        <div class="dialog-heading"><span class="dialog-icon">↕</span><div><h2>Add an entry</h2><p>Track a transaction, payment, or money transfer.</p></div></div>
         <form (ngSubmit)="saveEntry()">
-          <label>Type
-            <select name="entryType" [(ngModel)]="entryDraft.type"><option value="expense">Expense</option><option value="income">Income</option></select>
-          </label>
-          <label>Asset
-            <select name="entryAsset" required [(ngModel)]="entryDraft.assetId">
-              <option value="" disabled>Select an asset</option>
-              @for (asset of entryAssets; track asset.id) {
-                <option [value]="asset.id">{{ asset.name }}</option>
-              }
-            </select>
-          </label>
+          <div class="entry-mode-selector" role="tablist" aria-label="Entry type">
+            <button class="entry-mode-button" type="button" [class.active]="entryDraft.mode === 'transaction'" (click)="entryDraft.mode = 'transaction'; entryDraft.type = 'expense';">Transaction</button>
+            <button class="entry-mode-button" type="button" [class.active]="entryDraft.mode === 'payment'" (click)="entryDraft.mode = 'payment'; entryDraft.type = 'expense';">Payment</button>
+            <button class="entry-mode-button" type="button" [class.active]="entryDraft.mode === 'transfer'" (click)="entryDraft.mode = 'transfer'; entryDraft.type = 'expense';">Transfer</button>
+          </div>
+
+          @if (entryDraft.mode === 'transaction') {
+            <label>Direction
+              <select name="entryType" [(ngModel)]="entryDraft.type">
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </label>
+          }
+
+          @if (entryDraft.mode === 'payment') {
+            <label>Pay from
+              <select name="entryAsset" required [(ngModel)]="entryDraft.assetId">
+                <option value="" disabled>Select an account</option>
+                @for (asset of entryAssets; track asset.id) {
+                  <option [value]="asset.id">{{ asset.name }}</option>
+                }
+              </select>
+            </label>
+            <label>Liability
+              <select name="paymentTarget" required [(ngModel)]="entryDraft.targetAssetId">
+                <option value="" disabled>Select a liability</option>
+                @for (liability of entryLiabilities; track liability.id) {
+                  <option [value]="liability.id">{{ liability.name }}</option>
+                }
+              </select>
+            </label>
+          } @else if (entryDraft.mode === 'transfer') {
+            <label>Transfer from
+              <select name="transferSource" required [(ngModel)]="entryDraft.assetId">
+                <option value="" disabled>Select an asset</option>
+                @for (asset of entryAssets; track asset.id) {
+                  <option [value]="asset.id">{{ asset.name }}</option>
+                }
+              </select>
+            </label>
+            <label>Transfer to
+              <select name="transferTarget" required [(ngModel)]="entryDraft.targetAssetId">
+                <option value="" disabled>Select a destination</option>
+                @for (asset of entryAssets; track asset.id) {
+                  <option [value]="asset.id" [disabled]="asset.id === entryDraft.assetId">{{ asset.name }}</option>
+                }
+              </select>
+            </label>
+          } @else {
+            <label>Asset
+              <select name="entryAsset" required [(ngModel)]="entryDraft.assetId">
+                <option value="" disabled>Select an asset</option>
+                @for (asset of entryAssets; track asset.id) {
+                  <option [value]="asset.id">{{ asset.name }}</option>
+                }
+              </select>
+            </label>
+          }
+
           @if (!entryAssets.length) {
             <div class="no-entry-assets">
               <span>Add an asset before recording an entry.</span>
               <button class="text-button" type="button" (click)="showDialog('holding')">＋ Add an asset</button>
             </div>
+          } @else if (entryDraft.mode === 'payment' && !entryLiabilities.length) {
+            <div class="no-entry-assets">
+              <span>Add a liability before scheduling a payment.</span>
+              <button class="text-button" type="button" (click)="showDialog('holding')">＋ Add a liability</button>
+            </div>
+          } @else if (entryDraft.mode === 'transfer' && entryAssets.length < 2) {
+            <div class="no-entry-assets">
+              <span>Add another asset before creating a transfer.</span>
+              <button class="text-button" type="button" (click)="showDialog('holding')">＋ Add another asset</button>
+            </div>
           } @else {
-          <label>Amount
-            <input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required [(ngModel)]="entryDraft.amount">
-          </label>
-          <label>Category
-            <input name="category" type="text" maxlength="60" placeholder="e.g. Groceries, Salary" required [(ngModel)]="entryDraft.category">
-          </label>
-          <label>Date<input name="date" type="date" required [(ngModel)]="entryDraft.date"></label>
-          <label>Note <span class="optional">(optional)</span>
-            <input name="note" type="text" maxlength="140" placeholder="Add a little detail" [(ngModel)]="entryDraft.note">
-          </label>
+            <label>Amount
+              <input name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required [(ngModel)]="entryDraft.amount">
+            </label>
+            <label>Category
+              <input name="category" type="text" maxlength="60" placeholder="e.g. Groceries, Salary" required [(ngModel)]="entryDraft.category">
+            </label>
+            <label>Date<input name="date" type="date" required [(ngModel)]="entryDraft.date"></label>
+            <label>Note <span class="optional">(optional)</span>
+              <input name="note" type="text" maxlength="140" placeholder="Add a little detail" [(ngModel)]="entryDraft.note">
+            </label>
           }
           @if (storageError()) { <p class="form-error" role="alert">{{ storageError() }}</p> }
-          <button class="button button-primary dialog-submit" type="submit" [disabled]="!entryAssets.length">Save entry</button>
+          <button class="button button-primary dialog-submit" type="submit" [disabled]="!entryAssets.length || (entryDraft.mode === 'payment' && !entryLiabilities.length) || (entryDraft.mode === 'transfer' && entryAssets.length < 2)">Save {{ entryLabel(entryDraft.mode) }}</button>
         </form>
       }
 

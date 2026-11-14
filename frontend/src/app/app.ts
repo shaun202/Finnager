@@ -7,6 +7,7 @@ import {
   HoldingType,
   Ledger,
   LedgerEntry,
+  EntryMode,
   EntryType,
 } from './finance.models';
 import { LocalStoreService } from './local-store.service';
@@ -42,9 +43,11 @@ export class App implements OnInit {
   readonly editingHoldingId = signal('');
   readonly editingLedgerId = signal('');
   readonly entryDraft: {
+    mode: EntryMode;
     type: EntryType;
     amount: number | null;
     assetId: string;
+    targetAssetId: string;
     category: string;
     note: string;
     date: string;
@@ -63,12 +66,12 @@ export class App implements OnInit {
   });
   readonly monthIncome = computed(() =>
     this.monthEntries()
-      .filter((entry) => entry.type === 'income')
+      .filter((entry) => (entry.mode ?? 'transaction') !== 'transfer' && entry.type === 'income')
       .reduce((sum, entry) => sum + entry.amount, 0),
   );
   readonly monthExpenses = computed(() =>
     this.monthEntries()
-      .filter((entry) => entry.type === 'expense')
+      .filter((entry) => (entry.mode ?? 'transaction') !== 'transfer' && entry.type === 'expense')
       .reduce((sum, entry) => sum + entry.amount, 0),
   );
   readonly carryForward = computed(() => {
@@ -116,6 +119,17 @@ export class App implements OnInit {
       .filter(
         (holding) =>
           holding.type === 'asset' &&
+          (!holding.deletedAt || holding.deletedAt >= this.entryDraft.date) &&
+          holding.history.some((snapshot) => snapshot.date <= this.entryDraft.date),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  get entryLiabilities(): Holding[] {
+    return this.holdings()
+      .filter(
+        (holding) =>
+          holding.type === 'liability' &&
           (!holding.deletedAt || holding.deletedAt >= this.entryDraft.date) &&
           holding.history.some((snapshot) => snapshot.date <= this.entryDraft.date),
       )
@@ -200,6 +214,10 @@ export class App implements OnInit {
     if (dialog === 'entry') {
       Object.assign(this.entryDraft, this.newEntryDraft());
       this.entryDraft.assetId = this.entryAssets[0]?.id ?? '';
+      this.entryDraft.targetAssetId =
+        this.entryDraft.mode === 'payment'
+          ? this.entryLiabilities[0]?.id ?? ''
+          : this.entryAssets.find((asset) => asset.id !== this.entryDraft.assetId)?.id ?? '';
     }
     if (dialog === 'holding') {
       this.editingHoldingId.set('');
@@ -218,9 +236,29 @@ export class App implements OnInit {
 
   async saveEntry(): Promise<void> {
     const amount = Number(this.entryDraft.amount);
+    const mode = this.entryDraft.mode;
+    const targetAssetId = this.entryDraft.targetAssetId?.trim() ?? '';
+    const entryType: EntryType = mode === 'transaction' ? this.entryDraft.type : 'expense';
+
     if (!this.entryDraft.assetId || !this.entryAssets.some((asset) => asset.id === this.entryDraft.assetId)) {
       this.storageError.set('Choose an active asset for this entry.');
       return;
+    }
+    if (mode === 'payment') {
+      if (!targetAssetId || !this.entryLiabilities.some((holding) => holding.id === targetAssetId)) {
+        this.storageError.set('Choose the liability you are paying down.');
+        return;
+      }
+    }
+    if (mode === 'transfer') {
+      if (!targetAssetId || targetAssetId === this.entryDraft.assetId) {
+        this.storageError.set('Choose a different asset to transfer to.');
+        return;
+      }
+      if (!this.entryAssets.some((asset) => asset.id === targetAssetId)) {
+        this.storageError.set('Choose an active asset to transfer into.');
+        return;
+      }
     }
     if (!this.selectedLedgerId() || !this.entryDraft.category.trim() || !Number.isFinite(amount) || amount <= 0) {
       this.storageError.set('Enter a category and an amount greater than zero.');
@@ -231,7 +269,9 @@ export class App implements OnInit {
       id: crypto.randomUUID(),
       ledgerId: this.selectedLedgerId(),
       assetId: this.entryDraft.assetId,
-      type: this.entryDraft.type,
+      targetAssetId: mode === 'transaction' ? undefined : targetAssetId || undefined,
+      type: entryType,
+      mode,
       amount: cents(amount),
       category: this.entryDraft.category.trim(),
       note: this.entryDraft.note.trim(),
@@ -241,23 +281,29 @@ export class App implements OnInit {
     await this.persist(async () => {
       await this.store.saveEntry(entry);
       this.holdings.update((holdings) =>
-        holdings.map((holding) =>
-          holding.id === entry.assetId ? applyEntryToHolding(holding, entry) : holding,
-        ),
+        holdings.map((holding) => {
+          if (holding.id === entry.assetId || holding.id === entry.targetAssetId) {
+            return applyEntryToHolding(holding, entry);
+          }
+          return holding;
+        }),
       );
       this.entries.update((entries) => [...entries, entry]);
-      this.notice.set(`${capitalize(entry.type)} added to ${this.activeLedger?.name}.`);
+      this.notice.set(`${this.entryLabel(entry.mode ?? 'transaction')} added to ${this.activeLedger?.name}.`);
     });
   }
 
   async removeEntry(entry: LedgerEntry): Promise<void> {
-    if (!globalThis.confirm(`Delete this ${entry.type} entry?`)) return;
+    if (!globalThis.confirm(`Delete this ${this.entryLabel(entry.mode ?? 'transaction')} entry?`)) return;
     await this.persist(async () => {
       await this.store.deleteEntry(entry);
       this.holdings.update((holdings) =>
-        holdings.map((holding) =>
-          holding.id === entry.assetId ? applyEntryToHolding(holding, entry, -1) : holding,
-        ),
+        holdings.map((holding) => {
+          if (holding.id === entry.assetId || holding.id === entry.targetAssetId) {
+            return applyEntryToHolding(holding, entry, -1);
+          }
+          return holding;
+        }),
       );
       this.entries.update((entries) => entries.filter((item) => item.id !== entry.id));
       this.notice.set('Entry deleted.');
@@ -423,6 +469,13 @@ export class App implements OnInit {
     return this.holdings().find((holding) => holding.id === assetId)?.name ?? 'Asset';
   }
 
+  entryLabel(mode: EntryMode | EntryType): string {
+    if (mode === 'payment') return 'Payment';
+    if (mode === 'transfer') return 'Transfer';
+    if (mode === 'transaction') return 'Transaction';
+    return capitalize(mode);
+  }
+
   selectEntryAsset(assetId: string): void {
     this.entryDraft.assetId = assetId;
   }
@@ -562,16 +615,23 @@ export class App implements OnInit {
     const activity = this.entries()
       .filter(
         (entry) =>
-          entry.assetId === holding.id &&
+          (entry.assetId === holding.id || entry.targetAssetId === holding.id) &&
           entry.date <= date &&
           (entry.date > snapshot.date ||
             (entry.date === snapshot.date &&
               (entry.createdAt ?? `${entry.date}T23:59:59.999Z`) > baselineAt)),
       )
-      .reduce(
-        (sum, entry) => sum + (entry.type === 'income' ? entry.amount : -entry.amount),
-        0,
-      );
+      .reduce((sum, entry) => {
+        if (entry.assetId === holding.id) {
+          const sourceDelta = entry.mode === 'transfer' ? -entry.amount : entry.type === 'income' ? entry.amount : -entry.amount;
+          return sum + sourceDelta;
+        }
+        if (entry.targetAssetId === holding.id) {
+          if (entry.mode === 'transfer') return sum + entry.amount;
+          if (entry.mode === 'payment') return sum - entry.amount;
+        }
+        return sum;
+      }, 0);
     return cents(snapshot.value + activity);
   }
 
@@ -587,7 +647,16 @@ export class App implements OnInit {
   }
 
   private newEntryDraft(): typeof this.entryDraft {
-    return { type: 'expense', amount: null, assetId: '', category: '', note: '', date: todayKey() };
+    return {
+      mode: 'transaction',
+      type: 'expense',
+      amount: null,
+      assetId: '',
+      targetAssetId: '',
+      category: '',
+      note: '',
+      date: todayKey(),
+    };
   }
 
   private newHoldingDraft(): typeof this.holdingDraft {
