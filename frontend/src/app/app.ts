@@ -76,7 +76,7 @@ export class App implements OnInit {
         const rate = this.interestRateForBalance(holding, baseBalance);
         if (!Number.isFinite(rate) || rate <= 0) continue;
         const monthLabel = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(month);
-        const amount = Math.max(0, (baseBalance * rate) / 12);
+        const amount = Math.max(0, (baseBalance * rate * 30) / 365);
         generated.push({
           id: crypto.randomUUID(),
           ledgerId: holding.ledgerId,
@@ -783,10 +783,10 @@ export class App implements OnInit {
   private interestRateForBalance(holding: Holding, balance: number): number {
     if (!holding.interest?.enabled) return 0;
     const settings = holding.interest;
-    if (settings.kind === 'flat') return settings.rate;
+    if (settings.kind === 'flat') return settings.rate / 100;
     const thresholds = [...(settings.thresholds ?? [])].sort((a, b) => a.minimum - b.minimum);
     const match = thresholds.filter((threshold) => balance >= threshold.minimum).at(-1);
-    return match ? match.rate : 0;
+    return match ? match.rate / 100 : 0;
   }
 
   private async createBackup(): Promise<void> {
