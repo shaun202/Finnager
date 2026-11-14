@@ -46,10 +46,13 @@ GitHub Actions also builds the Android debug APK; download the `finnager-android
 ## Finance features
 
 - Create independent ledgers, each with its own starting cash balance, income, expenses, assets and liabilities.
+- Add entries as a standard transaction, payment, or transfer. Payment lets you apply a payment against a liability from an asset; transfer moves funds from one asset to another.
 - Add each income or expense to a selected asset; the asset balance updates automatically.
 - Keep Overview focused on monthly income, expenses and recent activity. Holdings shows estimated net worth, asset/liability totals, the monthly balance summary and a six-month trend.
 - Month changes happen automatically: earlier transactions remain saved and asset balances carry forward.
 - Asset and liability changes are saved as dated valuations, so earlier month-end summaries use the values recorded at that time.
+- Add optional recurring interest to holdings. Fixed-return plans calculate using the formula amount × interest rate ÷ 100 × 30 ÷ 365. Tiered plans support multiple balance thresholds with professional breakpoints for growth or debt planning.
+- Interest entries are generated automatically each month using the holding balance at the start of the cycle and a note such as “Interest for March 2026”. Users can toggle the interest setting on or off manually for a holding, which is useful for fixed deposit or similar asset-based interest products.
 - Switch between light and dark themes. On Android, create and switch ledgers from the mobile ledger selector.
 - Download a JSON backup from the sidebar.
 
