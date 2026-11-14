@@ -52,26 +52,61 @@ export class App implements OnInit {
     note: string;
     date: string;
   } = this.newEntryDraft();
-  readonly holdingDraft: { type: HoldingType; name: string; value: number | null } =
-    this.newHoldingDraft();
+  readonly holdingDraft: {
+    type: HoldingType;
+    name: string;
+    value: number | null;
+    interestEnabled: boolean;
+    interestKind: 'flat' | 'tiered';
+    interestRate: number | null;
+    interestThresholds: Array<{ id: string; minimum: number | null; rate: number | null }>;
+  } = this.newHoldingDraft();
   readonly ledgerDraft: { name: string; openingBalance: number | null } = {
     name: '',
     openingBalance: 0,
   };
+  readonly generatedInterestEntries = computed(() => {
+    const generated: LedgerEntry[] = [];
+    for (const holding of this.holdings()) {
+      if (!holding.interest?.enabled) continue;
+      const startMonth = this.interestStartMonth(holding);
+      const currentMonth = monthStart(new Date());
+      for (let month = new Date(startMonth.getFullYear(), startMonth.getMonth(), 1); month <= currentMonth; month = addMonths(month, 1)) {
+        const baseBalance = this.calculateHoldingValueAt(holding, monthEndKey(month), this.entries()) ?? 0;
+        const rate = this.interestRateForBalance(holding, baseBalance);
+        if (!Number.isFinite(rate) || rate <= 0) continue;
+        const monthLabel = new Intl.DateTimeFormat('en', { month: 'long', year: 'numeric' }).format(month);
+        const amount = Math.max(0, (baseBalance * rate) / 12);
+        generated.push({
+          id: crypto.randomUUID(),
+          ledgerId: holding.ledgerId,
+          assetId: holding.id,
+          type: holding.type === 'asset' ? 'income' : 'expense',
+          amount: cents(amount),
+          category: 'Interest',
+          note: `Interest for ${monthLabel}`,
+          date: `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}-01`,
+          createdAt: new Date(month.getFullYear(), month.getMonth(), 1, 9).toISOString(),
+        });
+      }
+    }
+    return generated;
+  });
+  readonly allEntries = computed(() => [...this.entries(), ...this.generatedInterestEntries()]);
   readonly monthEntries = computed(() => {
     const key = monthKey(this.selectedMonth());
-    return this.entries()
+    return this.allEntries()
       .filter((entry) => entry.date.startsWith(key))
       .sort((a, b) => b.date.localeCompare(a.date));
   });
   readonly monthIncome = computed(() =>
     this.monthEntries()
-      .filter((entry) => (entry.mode ?? 'transaction') !== 'transfer' && entry.type === 'income')
+      .filter((entry) => entry.type === 'income')
       .reduce((sum, entry) => sum + entry.amount, 0),
   );
   readonly monthExpenses = computed(() =>
     this.monthEntries()
-      .filter((entry) => (entry.mode ?? 'transaction') !== 'transfer' && entry.type === 'expense')
+      .filter((entry) => entry.type === 'expense')
       .reduce((sum, entry) => sum + entry.amount, 0),
   );
   readonly carryForward = computed(() => {
@@ -317,6 +352,22 @@ export class App implements OnInit {
       this.storageError.set('Enter a name and a value of zero or more.');
       return;
     }
+    if (this.holdingDraft.interestEnabled) {
+      const flatRate = Number(this.holdingDraft.interestRate);
+      if (this.holdingDraft.interestKind === 'flat' && (!Number.isFinite(flatRate) || flatRate <= 0)) {
+        this.storageError.set('Set a valid annual interest rate greater than zero.');
+        return;
+      }
+      if (this.holdingDraft.interestKind === 'tiered') {
+        const validThresholds = this.holdingDraft.interestThresholds.filter(
+          (threshold) => Number.isFinite(Number(threshold.minimum)) && Number.isFinite(Number(threshold.rate)) && Number(threshold.minimum) >= 0 && Number(threshold.rate) > 0,
+        );
+        if (validThresholds.length === 0) {
+          this.storageError.set('Add at least one valid threshold for this tiered interest plan.');
+          return;
+        }
+      }
+    }
 
     const date = todayKey();
     const existing = this.holdings().find((holding) => holding.id === this.editingHoldingId());
@@ -343,17 +394,47 @@ export class App implements OnInit {
     } else {
       history.push({ date, value: cents(value), recordedAt });
     }
+    const interest = this.holdingDraft.interestEnabled
+      ? {
+          enabled: true,
+          kind: this.holdingDraft.interestKind,
+          rate: Number(this.holdingDraft.interestRate ?? 0),
+          thresholds: (this.holdingDraft.interestThresholds ?? [])
+            .filter((threshold) => Number.isFinite(Number(threshold.minimum)) && Number.isFinite(Number(threshold.rate)))
+            .map((threshold) => ({
+              id: threshold.id || crypto.randomUUID(),
+              minimum: Number(threshold.minimum),
+              rate: Number(threshold.rate),
+            }))
+            .sort((a, b) => a.minimum - b.minimum),
+        }
+      : undefined;
     const holding: Holding = {
       id: existing?.id ?? crypto.randomUUID(),
       ledgerId: this.selectedLedgerId(),
       type: this.holdingDraft.type,
       name,
       history,
+      interest,
     };
     await this.persist(async () => {
       await this.store.saveHolding(holding);
       this.notice.set(`${capitalize(holding.type)} saved.`);
     });
+  }
+
+  addInterestThreshold(): void {
+    this.holdingDraft.interestThresholds = [...this.holdingDraft.interestThresholds, this.newInterestThreshold()];
+  }
+
+  removeInterestThreshold(thresholdId: string): void {
+    if (this.holdingDraft.interestThresholds.length <= 1) {
+      this.holdingDraft.interestThresholds = [this.newInterestThreshold()];
+      return;
+    }
+    this.holdingDraft.interestThresholds = this.holdingDraft.interestThresholds.filter(
+      (threshold) => threshold.id !== thresholdId,
+    );
   }
 
   editHolding(holding: Holding): void {
@@ -363,6 +444,17 @@ export class App implements OnInit {
     this.holdingDraft.type = holding.type;
     this.holdingDraft.name = holding.name;
     this.holdingDraft.value = value;
+    this.holdingDraft.interestEnabled = !!holding.interest?.enabled;
+    this.holdingDraft.interestKind = holding.interest?.kind ?? 'flat';
+    this.holdingDraft.interestRate = holding.interest?.enabled ? holding.interest.rate : null;
+    this.holdingDraft.interestThresholds = (holding.interest?.thresholds ?? []).map((threshold) => ({
+      id: threshold.id || crypto.randomUUID(),
+      minimum: threshold.minimum,
+      rate: threshold.rate,
+    }));
+    if (this.holdingDraft.interestKind === 'tiered' && this.holdingDraft.interestThresholds.length === 0) {
+      this.holdingDraft.interestThresholds = [this.newInterestThreshold()];
+    }
     this.storageError.set('');
     this.dialog.set('holding');
   }
@@ -603,6 +695,10 @@ export class App implements OnInit {
   }
 
   private holdingValueAt(holding: Holding, date: string): number | null {
+    return this.calculateHoldingValueAt(holding, date, this.allEntries());
+  }
+
+  private calculateHoldingValueAt(holding: Holding, date: string, entries: LedgerEntry[]): number | null {
     const snapshot = holding.history
       .filter((snapshot) => snapshot.date <= date)
       .sort((a, b) => {
@@ -612,7 +708,7 @@ export class App implements OnInit {
     if (!snapshot) return null;
 
     const baselineAt = snapshot.recordedAt ?? `${snapshot.date}T00:00:00.000Z`;
-    const activity = this.entries()
+    const activity = entries
       .filter(
         (entry) =>
           (entry.assetId === holding.id || entry.targetAssetId === holding.id) &&
@@ -623,6 +719,7 @@ export class App implements OnInit {
       )
       .reduce((sum, entry) => {
         if (entry.assetId === holding.id) {
+          if (holding.type === 'liability' && entry.type === 'expense') return sum + entry.amount;
           const sourceDelta = entry.mode === 'transfer' ? -entry.amount : entry.type === 'income' ? entry.amount : -entry.amount;
           return sum + sourceDelta;
         }
@@ -659,8 +756,37 @@ export class App implements OnInit {
     };
   }
 
+  private newInterestThreshold(): { id: string; minimum: number | null; rate: number | null } {
+    return { id: crypto.randomUUID(), minimum: null, rate: null };
+  }
+
   private newHoldingDraft(): typeof this.holdingDraft {
-    return { type: 'asset', name: '', value: null };
+    return {
+      type: 'asset',
+      name: '',
+      value: null,
+      interestEnabled: false,
+      interestKind: 'flat',
+      interestRate: null,
+      interestThresholds: [this.newInterestThreshold()],
+    };
+  }
+
+  private interestStartMonth(holding: Holding): Date {
+    if (!holding.history.length) return monthStart(new Date());
+    const earliestDate = holding.history
+      .map((snapshot) => snapshot.date)
+      .sort((a, b) => a.localeCompare(b))[0];
+    return new Date(`${earliestDate}T00:00:00.000Z`);
+  }
+
+  private interestRateForBalance(holding: Holding, balance: number): number {
+    if (!holding.interest?.enabled) return 0;
+    const settings = holding.interest;
+    if (settings.kind === 'flat') return settings.rate;
+    const thresholds = [...(settings.thresholds ?? [])].sort((a, b) => a.minimum - b.minimum);
+    const match = thresholds.filter((threshold) => balance >= threshold.minimum).at(-1);
+    return match ? match.rate : 0;
   }
 
   private async createBackup(): Promise<void> {

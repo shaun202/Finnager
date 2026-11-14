@@ -385,6 +385,68 @@
           <label>Current value
             <input name="holdingValue" type="number" min="0" step="0.01" placeholder="0.00" required [(ngModel)]="holdingDraft.value">
           </label>
+
+          <div class="interest-panel">
+            <div class="interest-header">
+              <div>
+                <strong>Add interest (optional)</strong>
+                <span>Track recurring monthly growth or charge.</span>
+              </div>
+              <label class="switch" aria-label="Enable interest">
+                <input type="checkbox" name="holdingInterestEnabled" [(ngModel)]="holdingDraft.interestEnabled">
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+
+            @if (holdingDraft.interestEnabled) {
+              <div class="interest-plan-selector" role="tablist" aria-label="Interest plan">
+                <button class="interest-plan-button" type="button" [class.active]="holdingDraft.interestKind === 'flat'" (click)="holdingDraft.interestKind = 'flat'">Fixed return</button>
+                <button class="interest-plan-button" type="button" [class.active]="holdingDraft.interestKind === 'tiered'" (click)="holdingDraft.interestKind = 'tiered'">Tiered return</button>
+              </div>
+
+              @if (holdingDraft.interestKind === 'flat') {
+                <label>Annual interest rate (%)
+                  <input name="holdingInterestRate" type="number" min="0.01" step="0.01" placeholder="2.50" [(ngModel)]="holdingDraft.interestRate">
+                </label>
+              } @else {
+                <div class="threshold-list">
+                  <div class="threshold-header-row">
+                    <span>Balance tiers</span>
+                    <button class="text-button" type="button" (click)="addInterestThreshold()">＋ Add threshold</button>
+                  </div>
+
+                  @for (threshold of holdingDraft.interestThresholds; track threshold.id; let index = $index) {
+                    <div class="threshold-row">
+                      <label>From balance
+                        <input
+                          [name]="'thresholdMinimum' + index"
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          placeholder="0.00"
+                          [(ngModel)]="threshold.minimum"
+                        >
+                      </label>
+                      <label>Rate (%)
+                        <input
+                          [name]="'thresholdRate' + index"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="2.00"
+                          [(ngModel)]="threshold.rate"
+                        >
+                      </label>
+                      @if (holdingDraft.interestThresholds.length > 1) {
+                        <button class="threshold-remove" type="button" aria-label="Remove threshold" (click)="removeInterestThreshold(threshold.id)">×</button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
+          </div>
+
           @if (storageError()) { <p class="form-error" role="alert">{{ storageError() }}</p> }
           <button class="button button-primary dialog-submit" type="submit">Save value</button>
         </form>

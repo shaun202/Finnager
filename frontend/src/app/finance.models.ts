@@ -1,6 +1,7 @@
 export type EntryType = 'income' | 'expense';
 export type EntryMode = 'transaction' | 'payment' | 'transfer';
 export type HoldingType = 'asset' | 'liability';
+export type InterestKind = 'flat' | 'tiered';
 
 export interface Ledger {
   id: string;
@@ -24,6 +25,19 @@ export interface LedgerEntry {
   createdAt?: string;
 }
 
+export interface InterestThreshold {
+  id: string;
+  minimum: number;
+  rate: number;
+}
+
+export interface HoldingInterest {
+  enabled: boolean;
+  kind: InterestKind;
+  rate: number;
+  thresholds: InterestThreshold[];
+}
+
 export interface HoldingValue {
   date: string;
   value: number;
@@ -36,6 +50,7 @@ export interface Holding {
   type: HoldingType;
   name: string;
   history: HoldingValue[];
+  interest?: HoldingInterest;
   deletedAt?: string;
   system?: boolean;
 }
